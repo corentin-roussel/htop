@@ -1,6 +1,6 @@
 CC = gcc
 SRCS = main.c application.c display.c process.c ui.c utils.c
-TARGET = main
+TARGET = htop
 OBJ_DIR =obj
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
 

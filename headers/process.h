@@ -5,7 +5,9 @@
 #ifndef HTOP_PROCESS_H
 #define HTOP_PROCESS_H
 #include <stdlib.h>
+#include <stdio.h>
+#include <ncurses.h>
 
-int findProcess();
+void findProcess();
 
 #endif //HTOP_PROCESS_H

@@ -4,13 +4,18 @@
 
 #include "headers/display.h"
 #include <stdio.h>
+#include <stdlib.h>
 
-void ncursing()
+int ncursing()
 {
-    initscr();
-    move(LINES - 1, COLS -1);
-    addch('.');
+    while(1) {
+        refresh();
+        findProcess();
+        if(getch() != 'q' )  // 410 est le code de la touche générée lorsqu'on redimensionne le terminal
+            break;
+    }
 
-    getch();
     endwin();
+
+    return 0;
 }

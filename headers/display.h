@@ -4,8 +4,9 @@
 
 #ifndef HTOP_DISPLAY_H
 #define HTOP_DISPLAY_H
+#include "process.h"
 #include <ncurses.h>
 
-void ncursing();
+int ncursing();
 
 #endif //HTOP_DISPLAY_H
