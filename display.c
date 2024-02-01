@@ -3,19 +3,28 @@
 //
 
 #include "headers/display.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-int ncursing()
+void ncursing()
 {
+    WINDOW *boite = initscr();
+    scrollok(boite, TRUE);
+    noecho();
+    keypad(stdscr, TRUE);
+
+    findProcess();
+    refresh();
     while(1) {
-        refresh();
-        findProcess();
-        if(getch() != 'q' )  // 410 est le code de la touche générée lorsqu'on redimensionne le terminal
+
+        if(getch() == KEY_UP)
+        {
+            findProcess();
+            refresh();
+        }
+        if(getch() == 'q' || getch() == 'Q')
+        {
             break;
+        }
     }
 
     endwin();
-
-    return 0;
 }

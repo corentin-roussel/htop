@@ -1,5 +1,5 @@
 CC = gcc
-SRCS = main.c application.c display.c process.c ui.c utils.c
+SRCS = application.c display.c process.c ui.c utils.c main.c
 TARGET = htop
 OBJ_DIR =obj
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
@@ -12,13 +12,13 @@ ifeq (run,$(firstword $(MAKECMDGOALS)))
   $(eval $(RUN_ARGS):;@:)
 endif
 
-LDFLAGS = -L/usr/lib/x86_64-linux-gnu
+LDFLAGS = -L /usr/lib/x86_64-linux-gnu/
 ifeq ($(OS),Windows_NT)
 	LDFLAGS += -lncursesw
 else
 	LDFLAGS += -lncurses
 endif
-INCLUDES = -I/usr/include
+INCLUDES = -I /usr/include/
 CFLAGS = -Wall -Wextra -Werror -g3 $(INCLUDES)
 
 all: $(TARGET)

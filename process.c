@@ -3,12 +3,9 @@
 //
 
 #include "headers/process.h"
-#define PATH_MAX 1000
+#define MAX_PATH 1000
 #define MAX_LINE_LENGTH 256
 #define STATUS_FILE "/proc/%s/status"
-#include <dirent.h>
-#include <ctype.h>
-#include <string.h>
 
 void printProcessName(const char *pid)
 {
@@ -28,7 +25,7 @@ void printProcessName(const char *pid)
     {
         if(strncmp(line, "Name:", 5) == 0)
         {
-            printf("PID: %s, Name: %s", pid, line + 6);
+            printw("%s\t %s", pid, line + 6);
             break;
         }
     }
@@ -49,6 +46,7 @@ void findProcess()
                "not be opened");
         exit(1);
     }
+    printw("PID\t Name\n");
     while ((entry = readdir(dir)) != NULL)
     {
         if( entry->d_type == DT_DIR && isdigit( entry->d_name[0] ) ) {

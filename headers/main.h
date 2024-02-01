@@ -4,7 +4,6 @@
 
 #ifndef HTOP_MAIN_H
 #define HTOP_MAIN_H
-#include "display.h"
-#include "process.h"
+
 
 #endif //HTOP_MAIN_H

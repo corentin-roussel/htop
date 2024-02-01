@@ -7,6 +7,5 @@
 #include "process.h"
 #include <ncurses.h>
 
-int ncursing();
-
+void ncursing();
 #endif //HTOP_DISPLAY_H
