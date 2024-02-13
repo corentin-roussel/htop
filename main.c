@@ -17,7 +17,11 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-    ncursing();
+    struct MemoryStat;
+
+    memUsage();
+    //cpuUsage();
+//    ncursing();
 //    findProcess();
     return 0;
 }
