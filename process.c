@@ -4,21 +4,30 @@
 
 #include "headers/process.h"
 #define MAX_PATH 1000
-#define MAX_LINE_LENGTH 256
+#define MAX_LINE_LENGTH 1024
 #define BUF_MAX 1024
 #define STAT_FILE "/proc/%s/stat"
 #define PROC_STAT "/proc/stat"
 #define MEMORY "/proc/meminfo"
+#define UPTIME "/proc/uptime"
+
 
 struct ProcessStat {
     int pid;
     char *comm;
     char state;
-    char *vmpeak;
-    char *pgrp;
-} ProcessStat;
+    long int cpu_usage;
+    int vmpeak;
+    int pgrp;
+    struct ProcessStat * next;
+} processStat;
 
-
+struct MemoryStat {
+    float mem_total;
+    float mem_free;
+    float swap_total;
+    float swap_free;
+} memoryStat;
 
 
 int my_atoi(char *str)
@@ -111,7 +120,7 @@ void calculateCPUUsage(double *usage) {
     }
 }
 
-void cpuUsage()
+void cpuUsage(WINDOW *boite)
 {
 
     int num_cpu = getNumberCpu();
@@ -119,13 +128,21 @@ void cpuUsage()
     double cpu_usage[num_cpu + 1];
     calculateCPUUsage(cpu_usage);
 
+    wclear(boite);
     for(int i = 0; i < num_cpu; i++)
     {
-        printf("CPU %d Usage: %.2f%%\n", i, cpu_usage[i]);
+        mvwprintw(boite, 1, 1,"CPU %d Usage: %.2f%%\n", 1, cpu_usage[0]);
+        mvwprintw(boite, 2, 1,"CPU %d Usage: %.2f%%\n", 2, cpu_usage[1]);
+        mvwprintw(boite, 3, 1,"CPU %d Usage: %.2f%%\n", 3, cpu_usage[2]);
+        mvwprintw(boite, 4, 1,"CPU %d Usage: %.2f%%\n", 4, cpu_usage[3]);
+        mvwprintw(boite, 5, 1,"CPU %d Usage: %.2f%%\n", 5, cpu_usage[4]);
+        mvwprintw(boite, 1, 25,"CPU %d Usage: %.2f%%\n", 6, cpu_usage[5]);
+        mvwprintw(boite, 2, 25,"CPU %d Usage: %.2f%%\n", 7, cpu_usage[6]);
     }
+    wrefresh(boite);
 }
 
-struct MemoryStat memUsage()
+void memUsage()
 {
     FILE *memory_file = fopen(MEMORY, "r");
 
@@ -137,10 +154,8 @@ struct MemoryStat memUsage()
 
     char buffer[BUF_MAX];
 
-    while(fgets(buffer, sizeof(buffer),memory_file))
+    while(fgets(buffer, sizeof(buffer),memory_file) != NULL)
     {
-
-
         char *token  = strtok(buffer, " ");
         if(strncmp(buffer, "MemTotal:",  9) == 0)
         {
@@ -183,18 +198,44 @@ struct MemoryStat memUsage()
             }
         }
     }
-    return memoryStat;
-
+    fclose(memory_file);
 }
 
-void printProcessDetails(const char *pid)
+float getUptime()
+{
+    FILE *uptime = fopen(UPTIME, "r");
+
+    char time[MAX_LINE_LENGTH];
+    if(uptime == NULL)
+    {
+        perror("Error opening status file");
+        return 0;
+    }
+
+    fgets(time, sizeof time, uptime);
+
+    char *tok = strtok(time, " ");
+    fclose(uptime);
+    return atoi(tok);
+}
+
+void printProcessDetails(const char *pid, WINDOW *boite, int i, int indexscroll)
 {
     FILE *file;
     char filename[MAX_LINE_LENGTH];
     char line[MAX_LINE_LENGTH];
-    char *tok;
-    int index = 0;
-    struct ProcessStat process = { 0, "", ' ', 0, 0};
+    char **splitted;
+    unsigned long utime;
+    unsigned long stime;
+    long int cutime;
+    long int cstime;
+    long int starttime;
+    long int total_time;
+    float seconds;
+    int hertz = sysconf(_SC_CLK_TCK);
+
+    float uptime = getUptime();
+
 
     snprintf(filename, sizeof (filename), STAT_FILE, pid);
 
@@ -204,40 +245,43 @@ void printProcessDetails(const char *pid)
         return;
     }
 
-    while(fgets(line, sizeof(line), file))
+    while(fgets(line, sizeof(line), file) != NULL)
     {
-//        if(strncmp(line, "Name:", 5) == 0)
-//        {
-//            printw("%s\t %s", pid, line + 6);
-//            break;
-//        }
-        while((tok = strtok(line, " ")) != NULL)
+        splitted = split(line);
+
+        utime = atoi(splitted[13]);
+        stime = atoi(splitted[14]);
+        cutime = atoi(splitted[15]);
+        cstime = atoi(splitted[16]);
+        total_time = utime +stime + cutime + cstime;
+        starttime = atoi(splitted[21]);
+        processStat.comm = splitted[1];
+        seconds = uptime-(starttime / hertz);
+//        printf("%d, %lu\n", hertz, starttime);
+        processStat.cpu_usage = 100 * ((total_time / hertz) /seconds);
+        processStat.pid = atoi(splitted[0]);
+//        printf("%lu\n", processStat.cpu_usage);
+
+        if(i > indexscroll)
         {
-            index++;
-            if(index == 2)
-            {
-                strcpy(process.comm, tok);
-                strcat(process.comm, " ");
 
-            }
-            if(index == 14)
-            {
-                strcpy(process.vmpeak, tok);
-                strcat(process.comm, " ");
-            }
+            mvwprintw(boite, i - indexscroll, 1, "%s",pid);
+            mvwprintw(boite, i - indexscroll, 10, "%.2ld",  processStat.cpu_usage );
+            mvwprintw(boite, i - indexscroll, 50, "%s", processStat.comm);
         }
-        tok = strtok(NULL, " ");
 
-        printw("%s \t %s \t %s",pid, process.comm, process.vmpeak);
-
+        wrefresh(boite);
     }
     fclose(file);
+
+
 }
 
-void findProcess()
+void findProcess(WINDOW *boite, int indexscroll)
 {
     DIR *dir;
     struct dirent *entry;
+    int index = 1;
     char path[PATH_MAX] = "/proc";
 
     dir = opendir(path);
@@ -248,11 +292,14 @@ void findProcess()
                "not be opened");
         exit(1);
     }
-    printw("PID\t Name\n");
+    mvwprintw(boite, 0, 1, "PID");
+    mvwprintw(boite, 0, 50, "Name");
+    mvwprintw(boite, 0, 10, "Mem");
     while ((entry = readdir(dir)) != NULL)
     {
         if( entry->d_type == DT_DIR && isdigit( entry->d_name[0] ) ) {
-            printProcessDetails(entry->d_name);
+            printProcessDetails(entry->d_name,  boite, index, indexscroll);
+            index++;
         }
     }
     closedir(dir);

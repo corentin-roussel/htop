@@ -13,6 +13,9 @@
 #include <ctype.h>
 #include <string.h>
 #include <ncurses.h>
+#include "utils.h"
+
+
 
 typedef struct statistics{
     unsigned long user;
@@ -27,19 +30,15 @@ typedef struct statistics{
     unsigned long guest_nice;
 } CPUStats;
 
-struct MemoryStat {
-    float mem_total;
-    float mem_free;
-    float swap_total;
-    float swap_free;
-} memoryStat;
 
-struct MemoryStat memUsage();
+
+void memUsage();
+float getUptime();
 int getNumberCpu();
 void getCpuUsage(CPUStats* stats);
 void calculateCPUUsage(double *usage);
-void cpuUsage();
-void findProcess();
-void printProcessDetails(const char *pid);
+void cpuUsage(WINDOW *boite);
+void findProcess(WINDOW *boite, int indexscroll);
+void printProcessDetails(const char *pid, WINDOW *boite, int i, int indexscroll);
 
 #endif //HTOP_PROCESS_H
