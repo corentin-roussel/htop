@@ -8,57 +8,85 @@
 void ncursing()
 {
     int start_row = 1;
-    int ch;
+
 
     initscr();
     WINDOW *cpu_window = newwin(0,100,0,0);
-    WINDOW *boite = newwin(25, 100, 20, 0);
-    cbreak();
+    WINDOW *boite = newwin(55, 100, 10, 0);
     noecho();
-    box(cpu_window, 0, 0);
-    box(boite, 0, 0);
-    wrefresh(boite);
-    wrefresh(cpu_window);
+
+
 
     scrollok(boite, TRUE);
-    scrollok(cpu_window, TRUE);
     keypad(stdscr, TRUE);
 
+    timeout(2000);
 
 
-
-    while ((ch = getch()) != 'q') {
-        wclear(boite);
-        wclear(cpu_window);
-        findProcess(boite, start_row);
-        cpuUsage(cpu_window);
-        wrefresh(boite);
-        wclear(cpu_window);
-        if (ch == KEY_UP) {
-            // Handle scrolling up
-            if (start_row >= 1) {
-                wclear(boite);
-                start_row--; // Decrement start row
-                findProcess(boite, start_row);
-                wrefresh(boite);
-            }
-        } else if (ch == KEY_DOWN) {
-            wclear(boite);
-            start_row++; // Decrement start row
-            findProcess(boite, start_row);
-            wrefresh(boite);
-        }
-        if(ch == ' ')
+    findProcess(boite, start_row);
+    cpuUsage(cpu_window);
+    while (1) {
+        int ch = getch();
+        if(ch == ERR)
         {
-            wclear(boite);
-            wclear(cpu_window);
             findProcess(boite, start_row);
             cpuUsage(cpu_window);
-            wrefresh(boite);
-            wrefresh(cpu_window);
+        }else {
+
+            if (ch == KEY_UP) {
+                // Handle scrolling up
+                if (start_row >= 1) {
+                    wclear(boite);
+                    start_row--; // Decrement start row
+                    findProcess(boite, start_row);
+                }
+
+            } else if (ch == KEY_DOWN) {
+                wclear(boite);
+                start_row++; // Increment start row
+                findProcess(boite, start_row);
+            }else if(ch == 'q')
+            {
+                break;
+            }else if(ch == ' ')
+            {
+                findProcess(boite, start_row);
+                cpuUsage(cpu_window);
+            }
         }
+        wrefresh(boite);
+        wrefresh(cpu_window);
         refresh();
     }
-
     endwin();
+}
+
+void progressBar(float percentage, int placeX, int placeY)
+{
+    int width = 45; // Width of the percentage bar
+
+
+    // Main loop
+    while (percentage <= 100) {
+
+        // Calculate number of characters to represent the progress
+        int progress = (int)(percentage / 100 * width);
+
+        // Print the percentage bar
+        mvprintw(placeX, placeY+50, "%.2f%%", percentage);
+        mvprintw( placeX, placeY+1, "[");
+        for (int i = 0; i < width; i++) {
+            if(i < progress){
+                addch('=');
+            }
+            else {
+                addch(' ');
+            }
+        }
+
+        addch(']');
+
+        // Increment percentage
+        percentage += 1.0;
+    }
 }

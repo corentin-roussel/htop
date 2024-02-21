@@ -7,5 +7,6 @@
 #include "process.h"
 #include <ncurses.h>
 
+void progressBar(float percentage, int placeX, int placeY);
 void ncursing();
 #endif //HTOP_DISPLAY_H

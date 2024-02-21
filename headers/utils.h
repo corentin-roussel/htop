@@ -12,6 +12,7 @@
 char **split(char *src);
 int word_counter(const char *src);
 int blank(char src);
+int my_atoi(char *str);
 
 
 #endif //HTOP_UTILS_H

@@ -7,6 +7,7 @@
 #define MAX_LINE_LENGTH 1024
 #define BUF_MAX 1024
 #define STAT_FILE "/proc/%s/stat"
+#define STATUS_FILE "/proc/%s/status"
 #define PROC_STAT "/proc/stat"
 #define MEMORY "/proc/meminfo"
 #define UPTIME "/proc/uptime"
@@ -15,33 +16,17 @@
 struct ProcessStat {
     int pid;
     char *comm;
-    char state;
-    long int cpu_usage;
-    int vmpeak;
+    char *state;
+    float cpu_usage;
+    int vmrss;
     int pgrp;
     struct ProcessStat * next;
 } processStat;
 
-struct MemoryStat {
-    float mem_total;
-    float mem_free;
-    float swap_total;
-    float swap_free;
-} memoryStat;
 
 
-int my_atoi(char *str)
-{
-    int i = 0;
-    int ascii = 0;
 
-    while(str[i] != '\0')
-    {
-        ascii = ascii * 10 + (str[i] - '0');
-        ++i;
-    }
-    return ascii;
-}
+
 
 int getNumberCpu()
 {
@@ -127,24 +112,25 @@ void cpuUsage(WINDOW *boite)
 
     double cpu_usage[num_cpu + 1];
     calculateCPUUsage(cpu_usage);
+    MemoryStat memoryUsage = memUsage();
 
-    wclear(boite);
-    for(int i = 0; i < num_cpu; i++)
-    {
         mvwprintw(boite, 1, 1,"CPU %d Usage: %.2f%%\n", 1, cpu_usage[0]);
-        mvwprintw(boite, 2, 1,"CPU %d Usage: %.2f%%\n", 2, cpu_usage[1]);
-        mvwprintw(boite, 3, 1,"CPU %d Usage: %.2f%%\n", 3, cpu_usage[2]);
-        mvwprintw(boite, 4, 1,"CPU %d Usage: %.2f%%\n", 4, cpu_usage[3]);
-        mvwprintw(boite, 5, 1,"CPU %d Usage: %.2f%%\n", 5, cpu_usage[4]);
-        mvwprintw(boite, 1, 25,"CPU %d Usage: %.2f%%\n", 6, cpu_usage[5]);
-        mvwprintw(boite, 2, 25,"CPU %d Usage: %.2f%%\n", 7, cpu_usage[6]);
-    }
-    wrefresh(boite);
+        mvwprintw(boite, 1, 25,"CPU %d Usage: %.2f%%\n", 2, cpu_usage[1]);
+        mvwprintw(boite, 2, 1,"CPU %d Usage: %.2f%%\n", 3, cpu_usage[2]);
+        mvwprintw(boite, 2, 25,"CPU %d Usage: %.2f%%\n", 4, cpu_usage[3]);
+        mvwprintw(boite, 3, 1,"CPU %d Usage: %.2f%%\n", 5, cpu_usage[4]);
+        mvwprintw(boite, 3, 25,"CPU %d Usage: %.2f%%\n", 6, cpu_usage[5]);
+        mvwprintw(boite, 4, 1,"CPU %d Usage: %.2f%%\n", 7, cpu_usage[6]);
+
+    mvwprintw(boite, 5,1, "MemUsage %.2lf", ((double)(memoryUsage.mem_total - memoryUsage.mem_free - memoryUsage.buffers - memoryUsage.cached) / memoryUsage.mem_total) * 100);
+    mvwprintw(boite, 6, 1, "SwapUsage %.2lf",((double)(memoryUsage.swap_total - memoryUsage.swap_free) / memoryUsage.swap_total) * 100);
 }
 
-void memUsage()
+MemoryStat memUsage()
 {
     FILE *memory_file = fopen(MEMORY, "r");
+
+    MemoryStat memoryStat = {0};
 
     if(memory_file == NULL)
     {
@@ -152,53 +138,26 @@ void memUsage()
         exit(EXIT_FAILURE);
     }
 
-    char buffer[BUF_MAX];
+    char line[BUF_MAX];
 
-    while(fgets(buffer, sizeof(buffer),memory_file) != NULL)
+    while(fgets(line, sizeof(line),memory_file) != NULL)
     {
-        char *token  = strtok(buffer, " ");
-        if(strncmp(buffer, "MemTotal:",  9) == 0)
-        {
-            token = strtok(NULL, " ");
-            while( token != NULL)
-            {
-                float value = strtol(token, NULL, 10);
-                memoryStat.mem_total = value/ 1048576;
-                break;
-            }
-        }
-        if(strncmp(buffer, "MemFree:",  8) == 0)
-        {
-            token = strtok(NULL, " ");
-            while( token != NULL)
-            {
-                float value = strtol(token, NULL, 10);
-                memoryStat.mem_free = value/ 1048576;
-                break;
-            }
-        }
-        if(strncmp(buffer, "SwapTotal:",  10) == 0)
-        {
-            token = strtok(NULL, " ");
-            while( token != NULL)
-            {
-                float value = strtol(token, NULL, 10);
-                memoryStat.swap_total = value/ 1048576;
-                break;
-            }
-        }
-        if(strncmp(buffer, "SwapFree:",  9) == 0)
-        {
-            token = strtok(NULL, " ");
-            while( token != NULL)
-            {
-                float value = strtol(token, NULL, 10);
-                memoryStat.swap_free = value/ 1048576;
-                break;
-            }
+        if (strstr(line, "MemTotal:") == line) {
+            sscanf(line, "MemTotal: %ld kB", &memoryStat.mem_total);
+        } else if (strstr(line, "MemFree:") == line) {
+            sscanf(line, "MemFree: %ld kB", &memoryStat.mem_free);
+        } else if (strstr(line, "Buffers:") == line) {
+            sscanf(line, "Buffers: %ld kB", &memoryStat.buffers);
+        } else if (strstr(line, "Cached:") == line) {
+            sscanf(line, "Cached: %ld kB", &memoryStat.cached);
+        } else if (strstr(line, "SwapTotal:") == line) {
+            sscanf(line, "SwapTotal: %ld kB", &memoryStat.swap_total);
+        } else if (strstr(line, "SwapFree:") == line) {
+            sscanf(line, "SwapFree: %ld kB", &memoryStat.swap_free);
         }
     }
     fclose(memory_file);
+    return memoryStat;
 }
 
 float getUptime()
@@ -219,6 +178,33 @@ float getUptime()
     return atoi(tok);
 }
 
+float processMemUsage(const char *pid) {
+
+    FILE *file;
+    char filename[MAX_LINE_LENGTH];
+    char line[MAX_LINE_LENGTH];
+    int memory_usage = 0;
+
+    snprintf(filename, sizeof(filename), STATUS_FILE, pid);
+
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening status file");
+        return 0;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (strncmp(line, "VmRSS:", 6) == 0) {
+            sscanf(line, "VmRSS: %d", &memory_usage);
+            break;
+        }
+    }
+    float memory_usage_gb = (float)memory_usage /( (1024.0 * 1024.0));
+    fclose(file);
+    return memory_usage_gb;
+}
+
+
 void printProcessDetails(const char *pid, WINDOW *boite, int i, int indexscroll)
 {
     FILE *file;
@@ -237,7 +223,9 @@ void printProcessDetails(const char *pid, WINDOW *boite, int i, int indexscroll)
     float uptime = getUptime();
 
 
+
     snprintf(filename, sizeof (filename), STAT_FILE, pid);
+    float memUsage = processMemUsage(pid);
 
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -260,17 +248,17 @@ void printProcessDetails(const char *pid, WINDOW *boite, int i, int indexscroll)
 //        printf("%d, %lu\n", hertz, starttime);
         processStat.cpu_usage = 100 * ((total_time / hertz) /seconds);
         processStat.pid = atoi(splitted[0]);
+        processStat.state = splitted[2];
 //        printf("%lu\n", processStat.cpu_usage);
 
         if(i > indexscroll)
         {
-
             mvwprintw(boite, i - indexscroll, 1, "%s",pid);
-            mvwprintw(boite, i - indexscroll, 10, "%.2ld",  processStat.cpu_usage );
+            mvwprintw(boite, i - indexscroll, 10, "%s", processStat.state);
+            mvwprintw(boite, i - indexscroll, 20, "%.2f%c",  processStat.cpu_usage, 37);
+            mvwprintw(boite, i - indexscroll, 30, "%.2fGB", memUsage);
             mvwprintw(boite, i - indexscroll, 50, "%s", processStat.comm);
         }
-
-        wrefresh(boite);
     }
     fclose(file);
 
@@ -291,10 +279,14 @@ void findProcess(WINDOW *boite, int indexscroll)
         perror("\n The file could "
                "not be opened");
         exit(1);
+
     }
+
     mvwprintw(boite, 0, 1, "PID");
     mvwprintw(boite, 0, 50, "Name");
-    mvwprintw(boite, 0, 10, "Mem");
+    mvwprintw(boite, 0, 10, "State");
+    mvwprintw(boite, 0, 20, "CPU%c", 37);
+    mvwprintw(boite, 0, 30, "Mem GB");
     while ((entry = readdir(dir)) != NULL)
     {
         if( entry->d_type == DT_DIR && isdigit( entry->d_name[0] ) ) {

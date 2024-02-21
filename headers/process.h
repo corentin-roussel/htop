@@ -17,7 +17,7 @@
 
 
 
-typedef struct statistics{
+typedef struct {
     unsigned long user;
     unsigned long nice;
     unsigned long system;
@@ -30,9 +30,17 @@ typedef struct statistics{
     unsigned long guest_nice;
 } CPUStats;
 
+typedef struct  {
+    long mem_total;
+    long mem_free;
+    long buffers;
+    long cached;
+    long swap_total;
+    long swap_free;
+}MemoryStat;
 
-
-void memUsage();
+float processMemUsage(const char *pid);
+MemoryStat memUsage();
 float getUptime();
 int getNumberCpu();
 void getCpuUsage(CPUStats* stats);

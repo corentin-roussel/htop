@@ -64,3 +64,16 @@ char **split(char *src)
     copy[i] = 0;
     return copy;
 }
+
+int my_atoi(char *str)
+{
+    int i = 0;
+    int ascii = 0;
+
+    while(str[i] != '\0')
+    {
+        ascii = ascii * 10 + (str[i] - '0');
+        ++i;
+    }
+    return ascii;
+}
